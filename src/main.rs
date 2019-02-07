@@ -68,7 +68,7 @@ fn main() {
 
     let mut a = MyIter::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter());
 
-    // println!("{:?}", a.get(0));
+    println!("{:?}", a.get(-1));
 
     let b = duplicar(a);
     let c = duplicar(b);
@@ -110,13 +110,13 @@ impl<Iter: Iterator<Item=f32> + Sized> MyIter<Iter> {
             // Ask for more values
             if self.buffer.len() as i32 + index < 0 {
                 while self.buffer.len() as i32 + index < 0 {
-                    // self.buffer.push_front(self.origin.next().unwrap());
-                    self.buffer.push_front(99.);
+                    self.buffer.push_front(self.origin.next().unwrap());
                 }
             }
             index = self.buffer.len() as i32 + index;
         }
         assert!(index >= 0);
+        println!("{:?}, {}", self.buffer, index);
         self.buffer.get(index as usize).unwrap()
     }
 }
