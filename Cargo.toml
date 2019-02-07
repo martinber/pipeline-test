@@ -1,0 +1,7 @@
+[package]
+name = "pipeline-test"
+version = "0.0.1"
+authors = ["Martin Bernardi <martinber.710@gmail.com>"]
+
+[dependencies]
+hound = "*"
