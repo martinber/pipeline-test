@@ -9,12 +9,15 @@ use std::collections::VecDeque;
 
 fn main() {
 
-    let mut a = MyIter::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter());
+    let mut a = MyIter::new(
+        vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter(),
+        |buf| buf.deque.pop_back().or(Some(0.)).unwrap()
+    );
 
-    println!("{:?}", a.get(-1));
+    // println!("{:?}", a.get(-1));
 
     let b = duplicar(a);
-    let c = duplicar(b);
+    let c = duplicar(b).take(10);
 
     println!("{:?}", c.collect::<Vec<f32>>());
 
@@ -26,56 +29,77 @@ fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
     entrada.map(|x| x * 2.)
 }
 
-/// The front has the oldest value. The back has the newest value
-struct MyIter<Iter>
+
+struct Buffer<Iter>
     where Iter: Iterator<Item=f32> + Sized
 {
     origin: Iter,
-    buffer: VecDeque<f32>,
+    pub deque: VecDeque<f32>,
 }
 
-impl<Iter> MyIter<Iter>
+impl<Iter> Buffer<Iter>
     where Iter: Iterator<Item=f32> + Sized
 {
-    pub fn new(v: Iter) -> MyIter<Iter> {
-        MyIter {
-            origin: v.into_iter(),
-            buffer: VecDeque::new(),
+    pub fn new(v: Iter) -> Buffer<Iter> {
+        Buffer {
+            origin: v,
+            deque: VecDeque::new(),
         }
     }
 
     pub fn get(&mut self, mut index: i32) -> &f32 {
         if index < 0 {
-            // Negative indices count from back
-            // index = match self.buffer.len().checked_add(index) {
-                // Some(i) => i, // Return the index right away
-                // None => { // len-index < 0, so we need to ask for more values
-                    // panic!("End reached");
-                // }
-            // }
 
             // Ask for more values
-            if self.buffer.len() as i32 + index < 0 {
-                while self.buffer.len() as i32 + index < 0 {
-                    self.buffer.push_front(self.origin.next().unwrap());
+            if self.deque.len() as i32 + index < 0 {
+                while self.deque.len() as i32 + index < 0 {
+                    self.deque.push_front(self.origin.next().unwrap());
                 }
             }
-            index = self.buffer.len() as i32 + index;
+            index = self.deque.len() as i32 + index;
         }
         assert!(index >= 0);
-        println!("{:?}, {}", self.buffer, index);
-        self.buffer.get(index as usize).unwrap()
+        println!("{:?}, {}", self.deque, index);
+        self.deque.get(index as usize).unwrap()
     }
 }
 
 
-impl<Iter> Iterator for MyIter<Iter>
-    where Iter: Iterator<Item=f32> + Sized
+/// The front has the oldest value. The back has the newest value
+struct MyIter<Iter, F>
+    where Iter: Iterator<Item=f32> + Sized,
+          F: Fn(&mut Buffer<Iter>) -> f32
+{
+    buffer: Buffer<Iter>,
+    function: F,
+}
+
+impl<Iter, F> MyIter<Iter, F>
+    where Iter: Iterator<Item=f32> + Sized,
+          F: Fn(&mut Buffer<Iter>) -> f32
+{
+    pub fn new(v: Iter, function: F) -> MyIter<Iter, F>
+    {
+        MyIter {
+            buffer: Buffer::new(v),
+            function,
+            // function: |buf: Buffer<Iter>| buf.deque.pop_back(),
+        }
+    }
+}
+
+
+
+impl<Iter, F> Iterator for MyIter<Iter, F>
+    where Iter: Iterator<Item=f32> + Sized,
+          F: Fn(&mut Buffer<Iter>) -> f32
 {
     type Item = f32;
 
     fn next(&mut self) -> Option<f32> {
-        self.buffer.pop_back().or_else(|| self.origin.next())
+        // self.buffer.pop_back().or_else(|| self.origin.next())
+        Some((self.function)(&mut self.buffer))
+        // Some(2.)
     }
 }
 
