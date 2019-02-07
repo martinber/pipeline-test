@@ -6,63 +6,6 @@ extern crate hound;
 use std::iter::Iterator;
 use std::collections::VecDeque;
 
-/*
-// https://gist.github.com/kevincox/019a0a4d1024e5bddd4be1cbe88fb2bc
-pub struct BufferedIterator<Iter: Iterator<Item=f32> + Sized> {
-    iter: Iter,
-    buffer: Vec<f32>,
-}
-
-impl<Iter: Iterator<Item=f32> + Sized> BufferedIterator<Iter> {
-    pub fn new(iter: Iter) -> Self {
-        BufferedIterator{
-            iter: iter,
-            buffer: Vec::new(),
-        }
-    }
-
-    pub fn peek(&mut self) -> Option<&f32> {
-        if self.buffer.is_empty() {
-            if let Some(e) = self.iter.next() {
-                self.buffer.push(e)
-            }
-        }
-
-        self.buffer.last()
-    }
-
-    pub fn unget(&mut self, e: f32) {
-        self.buffer.insert(0, e)
-    }
-}
-
-impl<Iter: Iterator<Item=f32> + Sized> Iterator for BufferedIterator<Iter> {
-    type Item = f32;
-
-    fn next(&mut self) -> Option<f32> {
-        self.buffer.pop().or_else(|| self.iter.next())
-    }
-}
-
-fn main() {
-
-    let mut a = BufferedIterator::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter());
-
-
-    let b = duplicar(a);
-    let c = duplicar(b);
-
-    println!("{:?}", c.collect::<Vec<f32>>());
-
-
-}
-
-fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
-
-    entrada.map(|x| x * 2.)
-}
-
-*/
 
 fn main() {
 
@@ -84,12 +27,16 @@ fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
 }
 
 /// The front has the oldest value. The back has the newest value
-struct MyIter<Iter: Iterator<Item=f32> + Sized> {
+struct MyIter<Iter>
+    where Iter: Iterator<Item=f32> + Sized
+{
     origin: Iter,
     buffer: VecDeque<f32>,
 }
 
-impl<Iter: Iterator<Item=f32> + Sized> MyIter<Iter> {
+impl<Iter> MyIter<Iter>
+    where Iter: Iterator<Item=f32> + Sized
+{
     pub fn new(v: Iter) -> MyIter<Iter> {
         MyIter {
             origin: v.into_iter(),
@@ -122,7 +69,9 @@ impl<Iter: Iterator<Item=f32> + Sized> MyIter<Iter> {
 }
 
 
-impl<Iter: Iterator<Item=f32> + Sized> Iterator for MyIter<Iter> {
+impl<Iter> Iterator for MyIter<Iter>
+    where Iter: Iterator<Item=f32> + Sized
+{
     type Item = f32;
 
     fn next(&mut self) -> Option<f32> {
