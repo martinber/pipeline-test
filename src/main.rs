@@ -4,16 +4,17 @@ extern crate hound;
 // https://gist.github.com/kevincox/019a0a4d1024e5bddd4be1cbe88fb2bc
 
 use std::iter::Iterator;
+use std::vec::IntoIter;
 use std::collections::VecDeque;
 
 // https://gist.github.com/kevincox/019a0a4d1024e5bddd4be1cbe88fb2bc
 pub struct BufferedIterator {
-    iter: Iterator<Item=f32>,
+    iter: IntoIter<f32>,
     buffer: Vec<f32>,
 }
 
 impl BufferedIterator {
-    pub fn new(iter: Iterator<Item=f32>) -> Self {
+    pub fn new(iter: IntoIter<f32>) -> Self {
         BufferedIterator{
             iter: iter,
             buffer: Vec::new(),
