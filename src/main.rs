@@ -7,40 +7,40 @@ use std::iter::Iterator;
 use std::collections::VecDeque;
 
 // https://gist.github.com/kevincox/019a0a4d1024e5bddd4be1cbe88fb2bc
-pub struct BufferedIterator<Iter: Iterator> {
-	iter: Iter,
-	buffer: Vec<Iter::Item>,
+pub struct BufferedIterator {
+    iter: Iterator<Item=f32>,
+    buffer: Vec<f32>,
 }
 
-impl<Iter: Iterator> BufferedIterator<Iter> {
-	pub fn new(iter: Iter) -> Self {
-		BufferedIterator{
-			iter: iter,
-			buffer: Vec::new(),
-		}
-	}
-	
-	pub fn peek(&mut self) -> Option<&Iter::Item> {
-		if self.buffer.is_empty() {
-			if let Some(e) = self.iter.next() {
-				self.buffer.push(e)
-			}
-		}
-		
-		self.buffer.last()
-	}
-	
-	pub fn unget(&mut self, e: Iter::Item) {
-		self.buffer.insert(0, e)
-	}
+impl BufferedIterator {
+    pub fn new(iter: Iterator<Item=f32>) -> Self {
+        BufferedIterator{
+            iter: iter,
+            buffer: Vec::new(),
+        }
+    }
+
+    pub fn peek(&mut self) -> Option<&f32> {
+        if self.buffer.is_empty() {
+            if let Some(e) = self.iter.next() {
+                self.buffer.push(e)
+            }
+        }
+
+        self.buffer.last()
+    }
+
+    pub fn unget(&mut self, e: f32) {
+        self.buffer.insert(0, e)
+    }
 }
 
-impl<Iter: Iterator> Iterator for BufferedIterator<Iter> {
-	type Item = Iter::Item;
-	
-	fn next(&mut self) -> Option<Self::Item> {
-		self.buffer.pop().or_else(|| self.iter.next())
-	}
+impl Iterator for BufferedIterator {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<f32> {
+        self.buffer.pop().or_else(|| self.iter.next())
+    }
 }
 
 fn main() {
