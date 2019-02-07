@@ -6,6 +6,7 @@ extern crate hound;
 use std::iter::Iterator;
 use std::collections::VecDeque;
 
+/*
 // https://gist.github.com/kevincox/019a0a4d1024e5bddd4be1cbe88fb2bc
 pub struct BufferedIterator<Iter: Iterator<Item=f32> + Sized> {
     iter: Iter,
@@ -61,12 +62,13 @@ fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
     entrada.map(|x| x * 2.)
 }
 
+*/
 
-/*
 fn main() {
 
-    let mut a = MyIter::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
+    let mut a = MyIter::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter());
 
+    // println!("{:?}", a.get(0));
 
     let b = duplicar(a);
     let c = duplicar(b);
@@ -82,14 +84,17 @@ fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
 }
 
 /// The front has the oldest value. The back has the newest value
-struct MyIter {
-    origin: Iterator<Item=f32>,
+struct MyIter<Iter: Iterator<Item=f32> + Sized> {
+    origin: Iter,
     buffer: VecDeque<f32>,
 }
 
-impl MyIter {
-    pub fn new(v: Vec<f32>) -> MyIter {
-        MyIter { origin: v.into_iter() }
+impl<Iter: Iterator<Item=f32> + Sized> MyIter<Iter> {
+    pub fn new(v: Iter) -> MyIter<Iter> {
+        MyIter {
+            origin: v.into_iter(),
+            buffer: VecDeque::new(),
+        }
     }
 
     pub fn get(&mut self, mut index: i32) -> &f32 {
@@ -105,7 +110,8 @@ impl MyIter {
             // Ask for more values
             if self.buffer.len() as i32 + index < 0 {
                 while self.buffer.len() as i32 + index < 0 {
-                    self.buffer.push_front(self.origin.next());
+                    // self.buffer.push_front(self.origin.next().unwrap());
+                    self.buffer.push_front(99.);
                 }
             }
             index = self.buffer.len() as i32 + index;
@@ -116,14 +122,13 @@ impl MyIter {
 }
 
 
-impl Iterator for MyIter {
+impl<Iter: Iterator<Item=f32> + Sized> Iterator for MyIter<Iter> {
     type Item = f32;
 
     fn next(&mut self) -> Option<f32> {
-        self.buffer.pop_back()
+        self.buffer.pop_back().or_else(|| self.origin.next())
     }
 }
-*/
 
 
 /*
