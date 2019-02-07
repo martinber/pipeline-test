@@ -2,7 +2,7 @@ extern crate hound;
 
 fn main() {
 
-    let a = vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter();
+    let a = MyIter::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]);
 
     let b = duplicar(a);
     let c = duplicar(b);
@@ -17,21 +17,21 @@ fn duplicar(entrada: impl std::iter::Iterator<Item=f32>) -> impl std::iter::Iter
 
     entrada.map(|x| x * 2.)
 }
-/*
+
 struct MyIter {
     buffer: Vec<f32>,
 }
 
 impl MyIter {
-
-
+    pub fn new(buffer: Vec<f32>) -> MyIter {
+        MyIter { buffer }
+    }
 }
 
-impl std::itrer::Iterator for MyIter {
+impl std::iter::Iterator for MyIter {
     type Item = f32;
 
     fn next(&mut self) -> Option<f32> {
-        buffer.pop()
+        self.buffer.pop()
     }
 }
-*/
