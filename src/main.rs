@@ -6,9 +6,17 @@ extern crate hound;
 use std::iter::Iterator;
 use std::collections::VecDeque;
 
-type SignalIter = Iterator<Item=f32>;
-
 fn main() {
+
+    // test()
+
+    // bench()
+
+    bench_iter()
+
+}
+
+fn test() {
 
     let origin = (1..).map(|x| x as f32);
 
@@ -38,15 +46,41 @@ fn main() {
 
     let d: Vec<f32> = c.take(100).collect();
     println!("{:?}", d);
-
-
 }
 
-fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
+fn bench() {
 
-    entrada.map(|x| x * 2.)
+    let origin = (1..).map(|x| x as f32).take(100000000);
+
+    let signal: Vec<f32> = origin.collect();
+
+
+    let coeff = &[1., 1., 1.];
+    let mut output: Vec<f32> = vec![0_f32; signal.len()];
+
+    for i in 0..signal.len() {
+        let mut sum: f32 = 0_f32;
+        for j in 0..coeff.len() {
+            if i > j {
+                sum += signal[i - j] * coeff[j];
+            }
+        }
+        output[i] = sum;
+    }
+
+
+    // let c: Vec<f32> = b.collect();
 }
 
+fn bench_iter() {
+
+    let origin = (1..).map(|x| x as f32).take(100000000);
+
+
+    let b = MyIter::new(origin, 3, |buf| filter(buf, &[1., 1., 1.]));
+
+    let c: Vec<f32> = b.collect();
+}
 
 pub struct Buffer
 {
@@ -104,6 +138,17 @@ impl Buffer
         return true;
     }
 
+    /// Pull a value from the iterator. Returns if able to get value.
+    pub fn pull(&mut self) -> bool {
+        match self.origin.next() {
+            Some(v) => {
+                self.deque.push_front(v);
+                true
+            },
+            None => false,
+        }
+    }
+
     pub fn pop(&mut self) -> Option<f32> {
         self.deque.pop_back()
     }
@@ -124,12 +169,16 @@ impl<F> MyIter<F>
 {
     pub fn new(iter: impl Iterator<Item=f32> + 'static, window: usize, function: F) -> MyIter<F>
     {
-        MyIter {
+        let mut iter = MyIter {
             buffer: Buffer::new(iter),
             function,
             // function: |buf: Buffer<Iter>| buf.deque.pop_back(),
             window,
+        };
+        if ! iter.buffer.fill(window) {
+            panic!("AA");
         }
+        iter
     }
 }
 
@@ -142,7 +191,7 @@ impl<F> Iterator for MyIter<F>
 
     fn next(&mut self) -> Option<f32> {
         // self.buffer.pop_back().or_else(|| self.origin.next())
-        if self.buffer.fill(self.window) {
+        if self.buffer.pull() {
             let result = (self.function)(&self.buffer);
             self.buffer.pop();
             Some(result)
