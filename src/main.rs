@@ -11,6 +11,7 @@ fn main() {
 
     let mut a = MyIter::new(
         vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter(),
+        5,
         |buf| buf.deque.pop_back().or(Some(0.)).unwrap()
     );
 
@@ -62,6 +63,17 @@ impl<Iter> Buffer<Iter>
         println!("{:?}, {}", self.deque, index);
         self.deque.get(index as usize).unwrap()
     }
+
+    /// Fills the buffer to reach given length. Returns if succesful.
+    pub fn fill(&mut self, length: usize) -> bool {
+        while self.deque.len() < length {
+            match self.origin.next() {
+                Some(v) => self.deque.push_front(v),
+                None => return false,
+            }
+        }
+        return true;
+    }
 }
 
 
@@ -72,18 +84,20 @@ struct MyIter<Iter, F>
 {
     buffer: Buffer<Iter>,
     function: F,
+    window: usize,
 }
 
 impl<Iter, F> MyIter<Iter, F>
     where Iter: Iterator<Item=f32> + Sized,
           F: Fn(&mut Buffer<Iter>) -> f32
 {
-    pub fn new(v: Iter, function: F) -> MyIter<Iter, F>
+    pub fn new(iter: Iter, window: usize, function: F) -> MyIter<Iter, F>
     {
         MyIter {
-            buffer: Buffer::new(v),
+            buffer: Buffer::new(iter),
             function,
             // function: |buf: Buffer<Iter>| buf.deque.pop_back(),
+            window,
         }
     }
 }
@@ -98,8 +112,11 @@ impl<Iter, F> Iterator for MyIter<Iter, F>
 
     fn next(&mut self) -> Option<f32> {
         // self.buffer.pop_back().or_else(|| self.origin.next())
-        Some((self.function)(&mut self.buffer))
-        // Some(2.)
+        if self.buffer.fill(self.window) {
+            Some((self.function)(&mut self.buffer))
+        } else {
+            None
+        }
     }
 }
 
