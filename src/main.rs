@@ -112,7 +112,7 @@ impl Buffer
 
 /// The front has the oldest value. The back has the newest value
 struct MyIter<F>
-    where F: Fn(&mut Buffer) -> f32
+    where F: Fn(&Buffer) -> f32
 {
     buffer: Buffer,
     function: F,
@@ -120,7 +120,7 @@ struct MyIter<F>
 }
 
 impl<F> MyIter<F>
-    where F: Fn(&mut Buffer) -> f32
+    where F: Fn(&Buffer) -> f32
 {
     pub fn new(iter: impl Iterator<Item=f32> + 'static, window: usize, function: F) -> MyIter<F>
     {
@@ -136,14 +136,14 @@ impl<F> MyIter<F>
 
 
 impl<F> Iterator for MyIter<F>
-    where F: Fn(&mut Buffer) -> f32
+    where F: Fn(&Buffer) -> f32
 {
     type Item = f32;
 
     fn next(&mut self) -> Option<f32> {
         // self.buffer.pop_back().or_else(|| self.origin.next())
         if self.buffer.fill(self.window) {
-            let result = (self.function)(&mut self.buffer);
+            let result = (self.function)(&self.buffer);
             self.buffer.pop();
             Some(result)
         } else {
