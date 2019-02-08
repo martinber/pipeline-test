@@ -9,15 +9,20 @@ use std::collections::VecDeque;
 
 fn main() {
 
-    let mut a = MyIter::new(
+    let a = MyIter::new(
         vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter(),
-        5,
-        |buf| buf.deque.pop_back().or(Some(0.)).unwrap()
+        1,
+        |buf| buf.get(-1)
+    );
+
+    let b = MyIter::new(
+        a,
+        1,
+        |buf| buf.get(-1) + 10.
     );
 
     // println!("{:?}", a.get(-1));
 
-    let b = duplicar(a);
     let c = duplicar(b).take(10);
 
     println!("{:?}", c.collect::<Vec<f32>>());
@@ -48,7 +53,7 @@ impl<Iter> Buffer<Iter>
         }
     }
 
-    pub fn get(&mut self, mut index: i32) -> &f32 {
+    pub fn get(&mut self, mut index: i32) -> f32 {
         if index < 0 {
 
             // Ask for more values
@@ -60,8 +65,7 @@ impl<Iter> Buffer<Iter>
             index = self.deque.len() as i32 + index;
         }
         assert!(index >= 0);
-        println!("{:?}, {}", self.deque, index);
-        self.deque.get(index as usize).unwrap()
+        *self.deque.get(index as usize).unwrap()
     }
 
     /// Fills the buffer to reach given length. Returns if succesful.
@@ -73,6 +77,10 @@ impl<Iter> Buffer<Iter>
             }
         }
         return true;
+    }
+
+    pub fn pop(&mut self) -> Option<f32> {
+        self.deque.pop_back()
     }
 }
 
@@ -113,7 +121,9 @@ impl<Iter, F> Iterator for MyIter<Iter, F>
     fn next(&mut self) -> Option<f32> {
         // self.buffer.pop_back().or_else(|| self.origin.next())
         if self.buffer.fill(self.window) {
-            Some((self.function)(&mut self.buffer))
+            let result = (self.function)(&mut self.buffer);
+            self.buffer.pop();
+            Some(result)
         } else {
             None
         }
