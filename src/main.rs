@@ -9,23 +9,33 @@ use std::collections::VecDeque;
 
 fn main() {
 
-    let a = MyIter::new(
-        vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10.].into_iter(),
-        1,
-        |buf| buf.get(-1)
-    );
+    let origin = std::iter::repeat(4.);
 
-    let b = MyIter::new(
-        a,
-        1,
-        |buf| buf.get(-1) + 10.
-    );
+    let a = MyIter::new(origin, 1, |buf| {
+        buf.get(-1) * 2.
+    });
+
+    let b = MyIter::new(a, 1, |buf| filter(buf, [1, 2, 3]));
+
+    let b = MyIter::new(a, 1, |buf| {
+        buf.get(-1) + 10.
+    });
+
+    /*
+    let a = origin.map(|x| {
+        x * 2.
+    });
+
+    let b = a.map(|x| {
+        x + 10.
+    });
+    */
 
     // println!("{:?}", a.get(-1));
 
-    let c = duplicar(b).take(10);
+    let c: Vec<f32> = duplicar(b).take(1000000000).collect();
 
-    println!("{:?}", c.collect::<Vec<f32>>());
+    // println!("{:?}", c.collect::<Vec<f32>>());
 
 
 }
@@ -53,19 +63,34 @@ impl<Iter> Buffer<Iter>
         }
     }
 
+    // pub fn get(&mut self, mut index: i32) -> f32 {
+        // if index < 0 {
+//
+            // // Ask for more values
+            // if self.deque.len() as i32 + index < 0 {
+                // while self.deque.len() as i32 + index < 0 {
+                    // self.deque.push_front(self.origin.next().unwrap());
+                // }
+            // }
+            // index = self.deque.len() as i32 + index;
+        // }
+        // assert!(index >= 0);
+        // *self.deque.get(index as usize).unwrap()
+    // }
+
     pub fn get(&mut self, mut index: i32) -> f32 {
         if index < 0 {
-
-            // Ask for more values
-            if self.deque.len() as i32 + index < 0 {
-                while self.deque.len() as i32 + index < 0 {
-                    self.deque.push_front(self.origin.next().unwrap());
-                }
-            }
             index = self.deque.len() as i32 + index;
         }
-        assert!(index >= 0);
-        *self.deque.get(index as usize).unwrap()
+        if index < 0 {
+            panic!("Negative buffer index out of bounds");
+        }
+        *self.deque.get(index as usize)
+            .expect("Positive buffer index out of bounds")
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item=&f32> + '_ {
+        self.deque.iter().rev()
     }
 
     /// Fills the buffer to reach given length. Returns if succesful.
@@ -131,26 +156,15 @@ impl<Iter, F> Iterator for MyIter<Iter, F>
 }
 
 
-/*
 /// Filter a signal.
 pub fn filter(
-    signal: impl std::iter::Iterator<Item=f32>,
+    buffer: Buffer,
     coeff: &[f32],
-) -> impl std::iter::Iterator<Item=f32> {
+) -> f32 {
 
-    for i in 0..signal.len() {
-        let mut sum: f32 = 0_f32;
-        for j in 0..coeff.len() {
-            if i > j {
-                sum += signal[i - j] * coeff[j];
-            }
-        }
-        output[i] = sum;
+    let mut sum: f32 = 0_f32;
+    for j in 0..coeff.len() {
+        sum += buffer.get(-j) * coeff[j];
     }
-    debug!("Filtering finished");
-
-    context.step(Step::filter("filter_filter", &coeff))?;
-    context.step(Step::signal("filter_result", &output, None))?;
-    Ok(output)
+    sum
 }
-*/
