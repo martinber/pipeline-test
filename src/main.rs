@@ -62,7 +62,7 @@ fn bench() {
         let mut sum: f32 = 0_f32;
         for j in 0..coeff.len() {
             if i > j {
-                sum += signal[i - j] * coeff[j];
+                sum += signal.get(i - j).unwrap() * coeff[j];
             }
         }
         output[i] = sum;
@@ -77,7 +77,7 @@ fn bench_iter() {
     let origin = (1..).map(|x| x as f32).take(100000000);
 
 
-    let b = MyIter::new(origin, 3, |buf| filter(buf, &[1., 1., 1.]));
+    let b = MyIter::new(origin, 3, |buf| filter_2(buf, &[1., 1., 1.]));
 
     let c: Vec<f32> = b.collect();
 }
@@ -111,6 +111,12 @@ impl Buffer
         // assert!(index >= 0);
         // *self.deque.get(index as usize).unwrap()
     // }
+
+    pub fn get_neg(&self, mut index: usize) -> f32 {
+        index = self.deque.len().checked_sub(index + 1).unwrap();
+        *self.deque.get(index)
+            .expect("Out of bounds")
+    }
 
     pub fn get(&self, mut index: i32) -> f32 {
         if index < 0 {
@@ -175,7 +181,8 @@ impl<F> MyIter<F>
             // function: |buf: Buffer<Iter>| buf.deque.pop_back(),
             window,
         };
-        if ! iter.buffer.fill(window) {
+        // Because I pull before next()
+        if ! iter.buffer.fill(window - 1) {
             panic!("AA");
         }
         iter
@@ -190,7 +197,6 @@ impl<F> Iterator for MyIter<F>
     type Item = f32;
 
     fn next(&mut self) -> Option<f32> {
-        // self.buffer.pop_back().or_else(|| self.origin.next())
         if self.buffer.pull() {
             let result = (self.function)(&self.buffer);
             self.buffer.pop();
@@ -211,6 +217,19 @@ pub fn filter(
     let mut sum: f32 = 0_f32;
     for j in 0..coeff.len() {
         sum += buffer.get(-(j as i32)) * coeff[j];
+    }
+    sum
+}
+
+/// Filter a signal.
+pub fn filter_2(
+    buffer: &Buffer,
+    coeff: &[f32],
+) -> f32 {
+
+    let mut sum: f32 = 0_f32;
+    for j in 0..coeff.len() {
+        sum += buffer.get_neg(j) * coeff[j];
     }
     sum
 }
