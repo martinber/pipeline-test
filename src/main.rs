@@ -6,8 +6,6 @@ extern crate hound;
 use std::iter::Iterator;
 use std::collections::VecDeque;
 
-trait SizedIterator: Iterator<Item=f32> + Sized {}
-
 
 fn main() {
 
@@ -48,15 +46,17 @@ fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
 }
 
 
-struct Buffer
+struct Buffer<Iter>
+    where Iter: Iterator<Item=f32> + Sized
 {
-    origin: SizedIterator<Item=f32>,
+    origin: Iter,
     pub deque: VecDeque<f32>,
 }
 
-impl Buffer
+impl<Iter> Buffer<Iter>
+    where Iter: Iterator<Item=f32> + Sized
 {
-    pub fn new(v: SizedIterator<Item=f32>) -> Buffer {
+    pub fn new(v: Iter) -> Buffer<Iter> {
         Buffer {
             origin: v,
             deque: VecDeque::new(),
@@ -111,18 +111,20 @@ impl Buffer
 
 
 /// The front has the oldest value. The back has the newest value
-struct MyIter<F>
-    where F: Fn(&mut Buffer) -> f32
+struct MyIter<Iter, F>
+    where Iter: Iterator<Item=f32> + Sized,
+          F: Fn(&mut Buffer<Iter>) -> f32
 {
-    buffer: Buffer,
+    buffer: Buffer<Iter>,
     function: F,
     window: usize,
 }
 
-impl<F> MyIter<F>
-    where F: Fn(&mut Buffer) -> f32
+impl<Iter, F> MyIter<Iter, F>
+    where Iter: Iterator<Item=f32> + Sized,
+          F: Fn(&mut Buffer<Iter>) -> f32
 {
-    pub fn new(iter: SizedIterator<Item=f32>, window: usize, function: F) -> MyIter<F>
+    pub fn new(iter: Iter, window: usize, function: F) -> MyIter<Iter, F>
     {
         MyIter {
             buffer: Buffer::new(iter),
@@ -135,8 +137,9 @@ impl<F> MyIter<F>
 
 
 
-impl<F> Iterator for MyIter<F>
-    where F: Fn(&mut Buffer) -> f32
+impl<Iter, F> Iterator for MyIter<Iter, F>
+    where Iter: Iterator<Item=f32> + Sized,
+          F: Fn(&mut Buffer<Iter>) -> f32
 {
     type Item = f32;
 
