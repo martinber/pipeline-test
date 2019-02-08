@@ -6,19 +6,20 @@ extern crate hound;
 use std::iter::Iterator;
 use std::collections::VecDeque;
 
+type SignalIter = Iterator<Item=f32>;
 
 fn main() {
 
-    let origin = std::iter::repeat(4.);
+    let origin = (1..).map(|x| x as f32);
 
     let a = MyIter::new(origin, 1, |buf| {
-        buf.get(-1) * 2.
+        buf.get(-1)// * 2.
     });
 
-    let b = MyIter::new(a, 1, |buf| filter(buf, [1, 2, 3]));
+    let b = MyIter::new(a, 3, |buf| filter(buf, &[1., 1., 1.]));
 
-    let b = MyIter::new(a, 1, |buf| {
-        buf.get(-1) + 10.
+    let c = MyIter::new(b, 1, |buf| {
+        buf.get(-1)// + 10.
     });
 
     /*
@@ -33,9 +34,10 @@ fn main() {
 
     // println!("{:?}", a.get(-1));
 
-    let c: Vec<f32> = duplicar(b).take(1000000000).collect();
+    // let d: Vec<f32> = c.take(1000000000).collect();
 
-    // println!("{:?}", c.collect::<Vec<f32>>());
+    let d: Vec<f32> = c.take(100).collect();
+    println!("{:?}", d);
 
 
 }
@@ -46,19 +48,17 @@ fn duplicar(entrada: impl Iterator<Item=f32>) -> impl Iterator<Item=f32> {
 }
 
 
-struct Buffer<Iter>
-    where Iter: Iterator<Item=f32> + Sized
+pub struct Buffer
 {
-    origin: Iter,
+    origin: Box<Iterator<Item=f32>>,
     pub deque: VecDeque<f32>,
 }
 
-impl<Iter> Buffer<Iter>
-    where Iter: Iterator<Item=f32> + Sized
+impl Buffer
 {
-    pub fn new(v: Iter) -> Buffer<Iter> {
+    pub fn new(v: impl Iterator<Item=f32> + 'static) -> Buffer {
         Buffer {
-            origin: v,
+            origin: Box::new(v),
             deque: VecDeque::new(),
         }
     }
@@ -78,7 +78,7 @@ impl<Iter> Buffer<Iter>
         // *self.deque.get(index as usize).unwrap()
     // }
 
-    pub fn get(&mut self, mut index: i32) -> f32 {
+    pub fn get(&self, mut index: i32) -> f32 {
         if index < 0 {
             index = self.deque.len() as i32 + index;
         }
@@ -111,20 +111,18 @@ impl<Iter> Buffer<Iter>
 
 
 /// The front has the oldest value. The back has the newest value
-struct MyIter<Iter, F>
-    where Iter: Iterator<Item=f32> + Sized,
-          F: Fn(&mut Buffer<Iter>) -> f32
+struct MyIter<F>
+    where F: Fn(&mut Buffer) -> f32
 {
-    buffer: Buffer<Iter>,
+    buffer: Buffer,
     function: F,
     window: usize,
 }
 
-impl<Iter, F> MyIter<Iter, F>
-    where Iter: Iterator<Item=f32> + Sized,
-          F: Fn(&mut Buffer<Iter>) -> f32
+impl<F> MyIter<F>
+    where F: Fn(&mut Buffer) -> f32
 {
-    pub fn new(iter: Iter, window: usize, function: F) -> MyIter<Iter, F>
+    pub fn new(iter: impl Iterator<Item=f32> + 'static, window: usize, function: F) -> MyIter<F>
     {
         MyIter {
             buffer: Buffer::new(iter),
@@ -137,9 +135,8 @@ impl<Iter, F> MyIter<Iter, F>
 
 
 
-impl<Iter, F> Iterator for MyIter<Iter, F>
-    where Iter: Iterator<Item=f32> + Sized,
-          F: Fn(&mut Buffer<Iter>) -> f32
+impl<F> Iterator for MyIter<F>
+    where F: Fn(&mut Buffer) -> f32
 {
     type Item = f32;
 
@@ -158,13 +155,13 @@ impl<Iter, F> Iterator for MyIter<Iter, F>
 
 /// Filter a signal.
 pub fn filter(
-    buffer: Buffer,
+    buffer: &Buffer,
     coeff: &[f32],
 ) -> f32 {
 
     let mut sum: f32 = 0_f32;
     for j in 0..coeff.len() {
-        sum += buffer.get(-j) * coeff[j];
+        sum += buffer.get(-(j as i32)) * coeff[j];
     }
     sum
 }
