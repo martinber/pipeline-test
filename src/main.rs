@@ -8,44 +8,32 @@ use std::collections::VecDeque;
 
 fn main() {
 
-    // test()
+    test()
 
     // bench()
 
-    bench_iter()
+    // bench_iter()
 
 }
 
 fn test() {
 
-    let origin = (1..).map(|x| x as f32);
+    let source = (1..).map(|x| x as f32);
 
-    let a = MyIter::new(origin, 1, |buf| {
-        buf.get(-1)// * 2.
+    let first_map = MyIter::new(source, 1, |buf| {
+        buf.get(-1) * 2.
     });
 
-    let b = MyIter::new(a, 3, |buf| filter(buf, &[1., 1., 1.]));
-
-    let c = MyIter::new(b, 1, |buf| {
-        buf.get(-1)// + 10.
+    let second_map = MyIter::new(first_map, 3, |buf| {
+        let mut sum: f32 = 0_f32;
+        for j in 0..3 {
+            sum += buf.get(-(j as i32)) * 0.2;
+        }
+        sum
     });
 
-    /*
-    let a = origin.map(|x| {
-        x * 2.
-    });
-
-    let b = a.map(|x| {
-        x + 10.
-    });
-    */
-
-    // println!("{:?}", a.get(-1));
-
-    // let d: Vec<f32> = c.take(1000000000).collect();
-
-    let d: Vec<f32> = c.take(100).collect();
-    println!("{:?}", d);
+    let result: Vec<f32> = second_map.take(100).collect();
+    println!("{:?}", result);
 }
 
 fn bench() {
@@ -135,13 +123,11 @@ impl Buffer
 
     /// Fills the buffer to reach given length. Returns if succesful.
     pub fn fill(&mut self, length: usize) -> bool {
+        let mut success = true;
         while self.deque.len() < length {
-            match self.origin.next() {
-                Some(v) => self.deque.push_front(v),
-                None => return false,
-            }
+            success = self.pull()
         }
-        return true;
+        return success;
     }
 
     /// Pull a value from the iterator. Returns if able to get value.
@@ -189,8 +175,6 @@ impl<F> MyIter<F>
     }
 }
 
-
-
 impl<F> Iterator for MyIter<F>
     where F: Fn(&Buffer) -> f32
 {
@@ -206,6 +190,8 @@ impl<F> Iterator for MyIter<F>
         }
     }
 }
+
+
 
 
 /// Filter a signal.
