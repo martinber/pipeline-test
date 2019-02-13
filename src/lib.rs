@@ -10,17 +10,19 @@ use std::collections::VecDeque;
 ///
 /// The front of the `VecDeque` has the newest value. The back has the oldest
 /// value.
-pub struct Buffer
+pub struct Buffer<I>
+    where I: Iterator<Item=f32> + Sized
 {
-    source: Box<Iterator<Item=f32>>,
+    source: I,
     pub deque: VecDeque<f32>,
 }
 
-impl Buffer
+impl<I> Buffer<I>
+    where I: Iterator<Item=f32> + Sized
 {
-    pub fn new(iter: impl Iterator<Item=f32> + 'static) -> Buffer {
+    pub fn new(iter: I) -> Buffer<I> {
         Buffer {
-            source: Box::new(iter),
+            source: iter,
             deque: VecDeque::new(),
         }
     }
@@ -53,7 +55,9 @@ impl Buffer
 
 // Implement indexing on `Buffer`
 
-impl std::ops::Index<i32> for Buffer {
+impl<I> std::ops::Index<i32> for Buffer<I>
+    where I: Iterator<Item=f32> + Sized
+{
     type Output = f32;
 
     fn index(&self, mut index: i32) -> &f32 {
@@ -70,34 +74,34 @@ impl std::ops::Index<i32> for Buffer {
 
 
 /// An iterator that maps the values of an `Iterator` using a `Buffer`.
-pub struct BufMap<F>
-    where F: Fn(&Buffer) -> f32
+pub struct BufMap<F, I>
+    where F: Fn(&Buffer<I>) -> f32,
+          I: Iterator<Item=f32>
 {
-    buffer: Buffer,
+    buffer: Buffer<I>,
     function: F,
 }
 
-impl<F> BufMap<F>
-    where F: Fn(&Buffer) -> f32
+pub fn buf_map<F, I>(iter: I, window: usize, function: F) -> BufMap<F, I>
+    where F: Fn(&Buffer<I>) -> f32,
+          I: Iterator<Item=f32>,
 {
-    pub fn new(iter: impl Iterator<Item=f32> + 'static, window: usize, function: F) -> BufMap<F>
-    {
-        let mut iter = BufMap {
-            buffer: Buffer::new(iter),
-            function,
-        };
-        // Because I pull before next()
-        if ! iter.buffer.fill(window - 1) {
-            panic!("Iterator too short to fill BufMap Buffer");
-        }
-        iter
+    let mut iter = BufMap {
+        buffer: Buffer::new(iter),
+        function,
+    };
+    // Because I pull before next()
+    if ! iter.buffer.fill(window - 1) {
+        panic!("Iterator too short to fill BufMap Buffer");
     }
+    iter
 }
 
 // Implement `std::Iterator` on `BufMap`
 
-impl<F> Iterator for BufMap<F>
-    where F: Fn(&Buffer) -> f32
+impl<F, I> Iterator for BufMap<F, I>
+    where F: Fn(&Buffer<I>) -> f32,
+          I: Iterator<Item=f32> + Sized
 {
     type Item = f32;
 
@@ -116,11 +120,11 @@ impl<F> Iterator for BufMap<F>
 // Add method `buf_map()` to `std::iter::Iterator`
 
 pub trait BufMapExt: Iterator {
-    fn buf_map<F>(self, window: usize, function: F) -> BufMap<F>
-        where F: Fn(&Buffer) -> f32,
-              Self: Iterator<Item=f32> + 'static + Sized,
+    fn buf_map<F>(self, window: usize, function: F) -> BufMap<F, Self>
+        where F: Fn(&Buffer<Self>) -> f32,
+              Self: Iterator<Item=f32> + Sized,
     {
-        BufMap::new(self, window, function)
+        buf_map(self, window, function)
     }
 }
 
