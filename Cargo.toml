@@ -1,7 +1,14 @@
 [package]
-name = "pipeline-test"
+name = "pipeline_test"
 version = "0.0.1"
 authors = ["Martin Bernardi <martinber.710@gmail.com>"]
 
 [dependencies]
 hound = "*"
+
+[dev-dependencies]
+criterion = "*"
+
+[[bench]]
+name = "benchmark"
+harness = false
