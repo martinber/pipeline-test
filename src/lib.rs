@@ -3,16 +3,11 @@ extern crate hound;
 use std::iter::Iterator;
 use std::collections::VecDeque;
 
-/// Buffer accessible when using `buf_map()`.
+/// An iterator that maps the values of an `Iterator` using a `VecDeque` as a
+/// buffer.
 ///
-/// It's a wrapper around `VecDeque` that also owns a `Iterator`.
-/// When calling `get()` this buffer takes a value from the `Iterator`.
-///
-/// The front of the `VecDeque` has the newest value. The back has the oldest
-/// value.
-
-
-/// An iterator that maps the values of an `Iterator` using a `Buffer`.
+/// Usage: `Iterator.buf_map(window_size, function)`
+/// Example: `(1..).buf_map(3, |buf| buf[0] + buf[1] + buf[2])`
 pub struct BufMap<F, I>
     where F: Fn(&VecDeque<f32>) -> f32,
           I: Iterator<Item=f32>
@@ -33,10 +28,13 @@ impl<F, I> BufMap<F, I>
             source,
             function,
         };
-        // - 1 Because I pull before next()
+        // Pull values from the source iterator until there is only one empty
+        // place on the buffer.
+        // Leave one place empty because I'm pulling a values from the iterator
+        // when `next()` is called.
         while iter.buffer.len() < window - 1 {
             iter.buffer.push_front(
-                iter.source.next().expect("Iterator too short to fill BufMap Buffer")
+                iter.source.next().expect("Iterator too short to fill BufMap buffer")
             );
         }
         iter
