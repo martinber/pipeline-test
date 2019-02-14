@@ -5,16 +5,16 @@ extern crate pipeline_test;
 use criterion::{Criterion, ParameterizedBenchmark};
 use pipeline_test::*;
 use std::iter::Iterator;
+use std::collections::VecDeque;
 
-pub fn buffer_filter<I>(
-    buffer: &Buffer<I>,
+pub fn buffer_filter(
+    buffer: &VecDeque<f32>,
     coeff: &[f32],
-) -> f32
-    where I: Iterator<Item=f32> {
-
+) -> f32 {
     let mut sum: f32 = 0_f32;
     for j in 0..coeff.len() {
-        sum += buffer[-(j as i32)] * coeff[j];
+        let k = buffer.len() - j - 1;
+        sum += buffer[k] * coeff[j];
     }
     sum
 }
